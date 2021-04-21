@@ -66,7 +66,7 @@ int main(void) {
 
   initialize_queues();
 
-  //TODO: sort queues according to priority level (in descending order)
+  //TODO: sort queues according to priority (in descending order)
 
   int current_time = 0;
 
