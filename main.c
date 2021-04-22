@@ -62,7 +62,14 @@ process* get_highest_priority_process();
 void update_burst_left_in_IO();
 void remove_completed_IO(int current_time);
 int has_ready_higher_priority_job (process* p1);
+void show_processes();
+void show_output();
+int are_all_queues_empty();
+void initialize_processes();
+
 int isStringDigitsOnly(const char *str);
+void readTextFile();
+queue* createQueue();
 
 //global variables
 int number_of_processes;
@@ -75,13 +82,16 @@ queue io;
 int main(void) {
 
   //TODO: read text file and initialize processes and queues
+  readTextFile();
+  show_processes();
 
+  initialize_processes();
   initialize_queues();
 
   //TODO: sort queues according to priority (in descending order)
 
   int current_time = 0;
-  process* p1;   //process running in CPU
+  process* p1 = NULL;   //process running in CPU
   int priority_boost_flag = 0;
   while (!are_processes_done()) {
     
@@ -96,61 +106,77 @@ int main(void) {
       priority_boost_flag = 0;
     }
     
-
+                
     //Get process with the highest priority (Rule 1)
-    if (p1 == NULL) {
+    if (p1 == NULL && !are_all_queues_empty()) {
       p1 = get_highest_priority_process();
-      p1->time_quantum_left = q[p->queue_index].time_quantum;
-      //TODO: list start time for CPU burst & queue ID
-      if (p1) {
-        //pass
-      }
-    }
 
+      //p1->time_quantum_left = q[p1->queue_index].time_quantum;
+
+      //list start time for CPU burst & queue ID
+      char str[10];
+      sprintf(str, "%d", q[p1->queue_index].id);
+      strcpy(p1->queue_id[p1->start_end_array_size], str);
+      p1->start_time[p1->start_end_array_size] = current_time;
+    }
+    
     //increment current time
     current_time++;
 
     //decrease burst_time_left for all process in IO 
     update_burst_left_in_IO();
-
     //Remove processes with complete IO burst from IO (*and update end time)
     remove_completed_IO(current_time);
-
+    
+    
     if (p1) {
       p1->execution_time_left--;
       p1->time_quantum_left--;
       p1->io_burst_timer++;
 
-      if (p1->time_quantum_left == 0 && p1->execution_time_left != 0) {
-        //TODO: List end time for CPU & increase array size
-        enqueue_to_lower(p1);
-      }
-        
-      if (p1->execution_time_left == 0) {
-        //TODO: List end time for CPU & increase array size
-        p1 = NULL;
-      }
-
       //Remove from CPU and place to IO
       if (p1->io_burst_timer == p1->io_frequency && p1->io_burst_time != 0 && p1->execution_time_left != 0) {
-        //TODO: list end time for CPU burst & update start_end_array_size
+        //list end time for CPU burst & update start_end_array_size
+        p1->end_time[p1->start_end_array_size] = current_time;
+        p1->start_end_array_size++;
+        
         p1->io_burst_timer = 0;
-        p1->io_burst_time_left = p->io_burst_time;
+        p1->io_burst_time_left = p1->io_burst_time;
         enqueue(&io, p1);
-        p1 = NULL;
       
-        //TODO: list start time for IO burst
+        //list start time for IO burst
+        strcpy(p1->queue_id[p1->start_end_array_size], "IO");
+        p1->start_time[p1->start_end_array_size] = current_time;
+
+        p1 = NULL;
+      }
+      else if (p1->time_quantum_left == 0 && p1->execution_time_left != 0) {
+        //List end time for CPU & increase array size
+        p1->end_time[p1->start_end_array_size] = current_time;
+        p1->start_end_array_size++;
+        enqueue_to_lower(p1);
+        p1 = NULL;
+      }
+      else if (p1->execution_time_left == 0) {
+        //List end time for CPU & increase array size
+        p1->end_time[p1->start_end_array_size] = current_time;
+        p1->start_end_array_size++;
+        p1 = NULL;
       }
 
       //TODO: preemptive process
-      if (has_ready_higher_priority_job (p1)) {
-        //TODO: list end time for CPU burst & update start_end_array_size
+      else if (has_ready_higher_priority_job (p1)) {
+        //list end time for CPU burst & update start_end_array_size
+        p1->end_time[p1->start_end_array_size] = current_time;
+        p1->start_end_array_size++;
         enqueue(&q[p1->queue_index], p1);
         p1 = NULL;
       }
     }
 
   }
+
+  show_output();
   
   return 0;
 }
@@ -174,6 +200,8 @@ void readTextFile() {
   fp = fopen (filepath, "r");
 
   if (fp != NULL) {
+    
+    /*
     // checking for non-numeric
     char line[256];
     char *token;
@@ -198,6 +226,7 @@ void readTextFile() {
     }
 
     fseek(fp, 0, SEEK_SET);
+    */
 
     if (fscanf(fp, " %f %f %f", &X, &Y, &S) == 3) {
       queueLineCounter = 0;
@@ -207,6 +236,14 @@ void readTextFile() {
         
         if (queueLineCounter > X)
       } while (queueLineCounter <= X) */;
+
+      //TEMPORARY FOR TESTING ONLY (U CAN DELETE IF U WANT)
+      int i;
+      for (i = 0; i < X; i++)
+        fscanf(fp, " %f %f %f", &A[i], &B[i], &C[i]);
+      for (i = 0; i < Y; i++)
+        fscanf(fp, " %f %f %f %f %f", &F[i], &G[i], &H[i], &I[i], &J[i]);
+
     } else {
       printf("Error: Problem reading first line of text file. Make sure it contains 3 integers.");
       exit(1);
@@ -285,6 +322,7 @@ void enqueue_to_lower(process* p1) {
     p1->queue_index++;
     enqueue(&q[p1->queue_index], p1);
   }
+  p1->time_quantum_left = q[p1->queue_index].time_quantum;
 }
 
 /*
@@ -298,6 +336,7 @@ void execute_priority_boost() {
     while (!is_queue_empty(&q[i])) {
       process* p1 = dequeue(&q[i]);
       p1->queue_index = 0;
+      p1->time_quantum_left = q[0].time_quantum;
       enqueue(&q[0], p1);
     }
   }
@@ -308,6 +347,7 @@ void enqueue_to_topmost_queue(int current_time) {
   for (i = 0; i < number_of_processes; i++)
     if (p[i].arrival_time == current_time) {
       p[i].queue_index = 0;
+      p[i].time_quantum_left = q[0].time_quantum;
       enqueue(&q[0], &p[i]);
     }
 }
@@ -333,6 +373,8 @@ void initialize_queues() {
     q[i].front = NULL;
     q[i].rear = NULL;
   }
+  io.front = NULL;
+  io.rear = NULL;
 }
 
 node* create_node(process *p1) {
@@ -386,7 +428,7 @@ process* get_highest_priority_process() {
 }
 
 void update_burst_left_in_IO() {
-  queue* temp;
+  queue* temp = createQueue();
   process* p1;
 
   while (!is_queue_empty(&io)) {
@@ -399,12 +441,11 @@ void update_burst_left_in_IO() {
     p1 = dequeue(temp);
     enqueue(&io, p1);
   }
-
 }
 
 void remove_completed_IO(int current_time) {
   int i;
-  queue* temp;
+  queue* temp = createQueue();
   process* p1;
 
   while (!is_queue_empty(&io)) {
@@ -417,7 +458,10 @@ void remove_completed_IO(int current_time) {
     if (p1->io_burst_time_left != 0)
       enqueue(&io, p1);
     else {
-      //TODO: list end time for IO and update array size
+      //list end time for IO and update array size
+      p1->end_time[p1->start_end_array_size] = current_time;
+      p1->start_end_array_size++;
+
       if (p1->time_quantum_left == 0) 
         enqueue_to_lower(p1);
       else
@@ -436,4 +480,57 @@ int has_ready_higher_priority_job (process* p1) {
     }
    
   return flag;
+}
+
+void show_processes() {
+  int i;
+  for (i = 0; i < number_of_processes; i++)
+    printf("P[%d] %d %d %d %d \n", p[i].id, p[i].arrival_time, p[i].total_execution_time,
+            p[i].io_burst_time, p[i].io_frequency);
+}
+
+void show_output() {
+  printf("**************************************** \n");
+  int i, j;
+  for (i = 0; i < number_of_processes; i++) {
+    printf("P[%d]\n", p[i].id);
+    for (j = 0; j < p[i].start_end_array_size; j++) {
+      if (strcmp(p[i].queue_id[j], "IO"))
+        printf("Q[%s] ", p[i].queue_id[j]);
+      else
+        printf("[IO] ");
+      printf("Start time: %d \t End time: %d \n", p[i].start_time[j], p[i].end_time[j]);
+    }
+    printf("Waiting time: %d \n", p[i].waiting_time);
+    printf("Turnaround time: %d \n", p[i].turnaround_time);
+    printf("**************************************** \n");
+  }
+}
+
+int are_all_queues_empty() {
+  int flag = 1; //TRUE
+  int i;
+  for (i = 0; i < number_of_queues; i++)
+    if (!is_queue_empty(&q[i])) {
+      flag = 0;
+      break;
+    }
+
+  return flag;
+}
+
+void initialize_processes() {
+  int i;
+  for (i = 0; i < number_of_processes; i++) {
+    p[i].execution_time_left = p[i].total_execution_time;
+    p[i].start_end_array_size = 0;
+  }
+    
+}
+
+queue* createQueue() {
+  queue* q = (queue*) malloc(sizeof(queue));
+  q->front = NULL;
+  q->rear = NULL;
+  return q;
 }
