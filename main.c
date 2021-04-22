@@ -402,18 +402,19 @@ void remove_completed_IO(int current_time) {
 
   while (!is_queue_empty(&io)) {
     p1 = dequeue(&io);
-    if (p1->io_burst_time_left == 0) {
-      if (p1->execution_time_left != 0) {
-        enqueue(&q[p1->queue_index], p1);
-      }
-      //TODO: update end time for IO process and array size
-    }
-    else 
-      enqueue(temp, p1);
+    enqueue(temp, p1);
   }
 
   while (!is_queue_empty(temp)) {
     p1 = dequeue(temp);
-    enqueue(&io, p1);
+    if (p1->io_burst_time_left != 0)
+      enqueue(&io, p1);
+    else {
+      //TODO: list end time for IO and update array size
+      if (p1->time_quantum_left == 0) 
+        enqueue_to_lower(p1)
+      else
+        enqueue(q[p1->queue_index], p1);
+    }
   }
 }
