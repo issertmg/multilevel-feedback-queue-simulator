@@ -18,8 +18,8 @@ typedef struct Process {
   
   /* addtnl attributes */
   int execution_time_left;    //time left from total_execution_time
-  int io_burst_timer;         //to check if process will withhold cpu already
-  int io_burst_time_left;     //time left from io_burst_time
+  int io_burst_timer;         //to check if process will withhold cpu already; initialized to 0
+  int io_burst_time_left;     //time left from io_burst_time; initialized to io_burst_time
   int time_quantum_left;      //to check if process already consumed allocated time quantum
   int queue_index;
 
@@ -56,6 +56,9 @@ void execute_priority_boost();
 int are_processes_done();
 void enqueue_to_topmost_queue(int current_time);
 void enqueue_to_lower(process* p1);
+process* get_highest_priority_process();
+void update_burst_left_in_IO();
+void remove_completed_IO();
 
 //global variables
 int number_of_processes;
@@ -75,34 +78,68 @@ int main(void) {
 
   int current_time = 0;
   process* p1;   //process running in CPU
-  process* p2;   //process running in IO
-
+  int priority_boost_flag = 0;
   while (!are_processes_done()) {
     
     //Place incoming processes to highest priority queue (Rule 3)
     enqueue_to_topmost_queue(current_time);
 
+    //trigger priority boost (Rule 5)
+    if (current_time % priority_boost_time == 0)
+      priority_boost_flag = 1;
+    if (priority_boost_flag && p1 == NULL) {
+      execute_priority_boost();
+      priority_boost_flag = 0;
+    }
+    
+
     //Get process with the highest priority (Rule 1)
-    if (p1 == NULL || p1->time_quantum_left == 0) {
-      //Place process to 1 queue lower
-      if (p1)
-        enqueue_to_lower(p1);
-      
-      int i;
-      for(i = 0; i < number_of_queues; i++) 
-        if (!is_queue_empty(&q[i])) {
-          p1 = dequeue(&q[i]);
-          break;
-        }
+    if (p1 == NULL) {
+      p1 = get_highest_priority_process();
+      p1->time_quantum_left = q[p->queue_index].time_quantum;
+      //TODO: list start time for CPU burst & queue ID
+      if (p1) {
+        //pass
+      }
     }
 
+    //Remove from CPU and place to IO
+    if (p1 && (p1->io_burst_timer == p1->io_frequency && p1->io_burst_time != 0)) {
+      //TODO: list end time for CPU burst & update start_end_array_size
+      p1->io_burst_timer = 0;
+      p1->io_burst_time_left = p->io_burst_time;
+      enqueue(&io, p1);
+      p1 = NULL;
+     
+      //TODO: list start time for IO burst
+
+    }
+
+    //TODO: Remove processes with complete IO burst from IO (*and update end time)
+    remove_completed_IO();
 
     //increment current time
     current_time++;
 
-    //trigger priority boost (Rule 5)
-    if (current_time % priority_boost_time == 0)
-      execute_priority_boost();
+    if (p1) {
+      p1->execution_time_left--;
+      p1->time_quantum_left--;
+      p1->io_burst_timer++;
+
+      if (p1->time_quantum_left == 0 && p1->execution_time_left != 0) {
+        //TODO: List end time for CPU & increase array size
+        enqueue_to_lower(p1);
+      }
+        
+      if (execution_time_left == 0) {
+        //TODO: List end time for CPU & increase array size
+        p1 = NULL;
+      }
+        
+    }
+
+    //decrease burst_time_left for all process in IO 
+    update_burst_left_in_IO();
 
   }
   
@@ -326,4 +363,55 @@ process* dequeue(queue* q) {
 
 int is_queue_empty(queue* q) {
   return q->rear == NULL;
+}
+
+process* get_highest_priority_process() {
+  process* p1 = NULL;
+  int i;
+  for(i = 0; i < number_of_queues; i++) 
+    if (!is_queue_empty(&q[i])) {
+      p1 = dequeue(&q[i]);
+      break;
+    }
+  return p1;
+}
+
+void update_burst_left_in_IO() {
+  queue* temp;
+  process* p1;
+
+  while (!is_queue_empty(&io)) {
+    p1 = dequeue(&io);
+    p1->io_burst_time_left--;
+    enqueue(temp, p1);
+  }
+
+  while (!is_queue_empty(temp)) {
+    p1 = dequeue(temp);
+    enqueue(&io, p1);
+  }
+
+}
+
+void remove_completed_IO() {
+  int i;
+  queue* temp;
+  process* p1;
+
+  while (!is_queue_empty(&io)) {
+    p1 = dequeue(&io);
+    if (p1->io_burst_time_left == 0) {
+      if (p1->execution_time_left != 0) {
+        enqueue(&q[p1->queue_index], p1);
+      }
+      //TODO: update end time for IO process
+    }
+    else 
+      enqueue(temp, p1);
+  }
+
+  while (!is_queue_empty(temp)) {
+    p1 = dequeue(temp);
+    enqueue(&io, p1);
+  }
 }
