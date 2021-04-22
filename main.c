@@ -19,6 +19,9 @@ typedef struct Process {
   /* addtnl attributes */
   int execution_time_left;    //time left from total_execution_time
   int io_burst_timer;         //to check if process will withhold cpu already
+  int io_burst_time_left;     //time left from io_burst_time
+  int time_quantum_left;      //to check if process already consumed allocated time quantum
+  int queue_index;
 
   /* output */
   int start_end_array_size;   //initialized to 0 (length of start_time and end_time array)
@@ -52,6 +55,7 @@ int is_queue_empty(queue* q);
 void execute_priority_boost();
 int are_processes_done();
 void enqueue_to_topmost_queue(int current_time);
+void enqueue_to_lower(process* p1);
 
 //global variables
 int number_of_processes;
@@ -59,6 +63,7 @@ process p[100];
 int number_of_queues;
 queue q[5];
 int priority_boost_time;
+queue io;
 
 int main(void) {
 
@@ -69,18 +74,27 @@ int main(void) {
   //TODO: sort queues according to priority (in descending order)
 
   int current_time = 0;
+  process* p1;   //process running in CPU
+  process* p2;   //process running in IO
 
   while (!are_processes_done()) {
     
     //Place incoming processes to highest priority queue (Rule 3)
     enqueue_to_topmost_queue(current_time);
 
-
-
-
-
-
-
+    //Get process with the highest priority (Rule 1)
+    if (p1 == NULL || p1->time_quantum_left == 0) {
+      //Place process to 1 queue lower
+      if (p1)
+        enqueue_to_lower(p1);
+      
+      int i;
+      for(i = 0; i < number_of_queues; i++) 
+        if (!is_queue_empty(&q[i])) {
+          p1 = dequeue(&q[i]);
+          break;
+        }
+    }
 
 
     //increment current time
@@ -153,6 +167,17 @@ void readTextFile() {
 
   //TODO: CHECK INPUTS
 }
+
+void enqueue_to_lower(process* p1) {
+  if (p1->queue_index == number_of_queues - 1) {
+    enqueue(&q[p1->queue_index], p1);
+  }
+  else {
+    p1->queue_index++;
+    enqueue(&q[p1->queue_index], p1);
+  }
+}
+
 /*
   Move all processes to topmost queue 
   starting from the "queue below the topmost queue"
@@ -163,6 +188,7 @@ void execute_priority_boost() {
   for (i = 1; i < number_of_queues; i++) {
     while (!is_queue_empty(&q[i])) {
       process* p1 = dequeue(&q[i]);
+      p1->queue_index = 0;
       enqueue(&q[0], p1);
     }
   }
@@ -171,8 +197,10 @@ void execute_priority_boost() {
 void enqueue_to_topmost_queue(int current_time) {
   int i;
   for (i = 0; i < number_of_processes; i++)
-    if (p[i].arrival_time == current_time)
+    if (p[i].arrival_time == current_time) {
+      p[i].queue_index = 0;
       enqueue(&q[0], &p[i]);
+    }
 }
 
 int are_processes_done() {
