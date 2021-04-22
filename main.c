@@ -95,7 +95,64 @@ int main(void) {
   return 0;
 }
 
+void readTextFile() {
+  FILE *fp;
+  int lineCounter;
+  char filepath[261] = "./";
+  char filename[261];
 
+  float X, Y, S;
+  float A[100], B[100], C[100];
+  float F[100], G[100], H[100], I[100], J[100];
+
+  printf("Enter filename (include .txt): ");
+  scanf("%s", filename);
+
+  strcat(filepath, filename);
+
+  fp = fopen (filepath, "r");
+
+  if (fp != NULL) {
+    // checking for non-numeric
+    char line[256];
+    char *token;
+
+    while (fgets(line, 256, fp)) {
+      token = strtok(line, " ");
+
+      while(token != NULL) {
+        if (!isStringDigitsOnly(token)) {
+          printf("Error: Text file contains non-numeric data and/or invalid values.");
+          exit(1);
+        }
+        token = strtok(NULL, " ");
+      } 
+    }
+
+    fseek(fp, 0, SEEK_SET);
+
+    if (fscanf(fp, " %f %f %f", &X, &Y, &S) == 3) {
+      lineCounter = 0;
+      while (lineCounter != X && fscanf(fp, " %f %f %f", &A[lineCounter], &B[lineCounter], &C[lineCounter]) == 3) {
+        lineCounter++;
+      }
+
+      lineCounter = 0;
+      while (lineCounter != Y && fscanf(fp, " %f %f %f %f %f", &F[lineCounter], &G[lineCounter], &H[lineCounter], &I[lineCounter], &J[lineCounter]) == 5) {
+        lineCounter++;
+      }
+    } else {
+      printf("Error: Problem reading first line of text file. Make sure it contains 3 integers.");
+      exit(1);
+    }
+  } else {
+    printf("\"%s\" not found.", filename);
+    exit(1);
+  }
+  fclose(fp);
+
+  //TODO: CHECK INPUTS
+}
 /*
   Move all processes to topmost queue 
   starting from the "queue below the topmost queue"
