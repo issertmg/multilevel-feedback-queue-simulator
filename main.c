@@ -97,7 +97,8 @@ int main(void) {
 
 void readTextFile() {
   FILE *fp;
-  int lineCounter;
+  int queueLineCounter;
+  int processLineCounter;
   char filepath[261] = "./";
   char filename[261];
 
@@ -119,28 +120,33 @@ void readTextFile() {
 
     while (fgets(line, 256, fp)) {
       token = strtok(line, " ");
+      int tokenCounterPerLine = 0;
 
       while(token != NULL) {
         if (!isStringDigitsOnly(token)) {
           printf("Error: Text file contains non-numeric data and/or invalid values.");
           exit(1);
         }
+        tokenCounterPerLine++;
         token = strtok(NULL, " ");
       } 
+
+      if (tokenCounterPerLine != 3 || tokenCounterPerLine != 5) {
+        printf("Error: Each line in the text file should have either 3 or 5 integers.");
+        exit(1);
+      }
     }
 
     fseek(fp, 0, SEEK_SET);
 
     if (fscanf(fp, " %f %f %f", &X, &Y, &S) == 3) {
-      lineCounter = 0;
-      while (lineCounter != X && fscanf(fp, " %f %f %f", &A[lineCounter], &B[lineCounter], &C[lineCounter]) == 3) {
-        lineCounter++;
-      }
-
-      lineCounter = 0;
-      while (lineCounter != Y && fscanf(fp, " %f %f %f %f %f", &F[lineCounter], &G[lineCounter], &H[lineCounter], &I[lineCounter], &J[lineCounter]) == 5) {
-        lineCounter++;
-      }
+      queueLineCounter = 0;
+      /*TODO: do {
+        if (fscanf(fp, " %f %f %f", &A[queueLineCounter], &B[queueLineCounter], &C[queueLineCounter]) == 3)
+          queueLineCounter++;
+        
+        if (queueLineCounter > X)
+      } while (queueLineCounter <= X) */;
     } else {
       printf("Error: Problem reading first line of text file. Make sure it contains 3 integers.");
       exit(1);
@@ -151,7 +157,64 @@ void readTextFile() {
   }
   fclose(fp);
 
-  //TODO: CHECK INPUTS
+  //TODO: check inputs errorCheckInputs (X, Y, S, A, B, C, F, G, H, I, J, queueLineCounter, processLineCounter);
+
+  //TODO: place in global variables
+  
+    number_of_queues = X;
+    number_of_processes = Y;
+    priority_boost_time = S;
+
+    for (int i = 0; i < number_of_queues; i++) {
+      q[i].id = (int) A[i];
+      q[i].priority = (int) B[i];
+      q[i].time_quantum = (int) C[i];
+    } 
+
+    for (int j = 0; j < number_of_processes; j++) {
+      p[j].id = (int) F[j];
+      p[j].arrival_time = (int) G[j];
+      p[j].total_execution_time = (int) H[j];
+      p[j].io_burst_time = (int) I[j];
+      p[io_frequency] = (int) J[j];
+    }
+}
+
+void errorCheckInputs (float X, float Y, float S, 
+                      float A[], float B[], float C[],
+                      float F[], float G[], float H[], float I[], float J[],
+                      int queueLines, int processLines  
+                      ) {
+  
+  if (X < 2 || X > 5) {
+    printf("Error: Specified CPU scheduling algorithm (X) is invalid. Must be a value from 2 to 5.");
+    exit(1);
+  }
+  if (Y < 3 || Y > 100) {
+    printf("Error: Specified CPU scheduling algorithm (X) is invalid. Must be a value from 3 to 100.");
+    exit(1);
+  }
+
+  /* FIXME: NOT SURE!
+  if (S < 0 || G < 0 || H < 0 || I < 0 || J < 0) {
+    printf("Error: Time variables cannot be negative.");
+    exit(1);
+  } */
+
+  if (i == 0 && j != 0 || j == 0 && i != 0) {
+    printf("Error: For processes without I/O, the I/O burst time (I) and its frequency (J) must be equal to 0.");
+    exit(1);
+  }
+}
+
+int isStringDigitsOnly(const char *str) {
+  while (*str) {
+    if (*str != '\n' && *str != ' ' && isdigit(*str++) == 0) 
+      return 0;
+
+    *str++;
+  }
+  return 1;
 }
 /*
   Move all processes to topmost queue 
