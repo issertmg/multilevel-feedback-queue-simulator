@@ -58,7 +58,7 @@ void enqueue_to_topmost_queue(int current_time);
 void enqueue_to_lower(process* p1);
 process* get_highest_priority_process();
 void update_burst_left_in_IO();
-void remove_completed_IO();
+void remove_completed_IO(int current_time);
 
 //global variables
 int number_of_processes;
@@ -103,23 +103,14 @@ int main(void) {
       }
     }
 
-    //Remove from CPU and place to IO
-    if (p1 && (p1->io_burst_timer == p1->io_frequency && p1->io_burst_time != 0)) {
-      //TODO: list end time for CPU burst & update start_end_array_size
-      p1->io_burst_timer = 0;
-      p1->io_burst_time_left = p->io_burst_time;
-      enqueue(&io, p1);
-      p1 = NULL;
-     
-      //TODO: list start time for IO burst
-
-    }
-
-    //TODO: Remove processes with complete IO burst from IO (*and update end time)
-    remove_completed_IO();
-
     //increment current time
     current_time++;
+
+    //decrease burst_time_left for all process in IO 
+    update_burst_left_in_IO();
+
+    //Remove processes with complete IO burst from IO (*and update end time)
+    remove_completed_IO(current_time);
 
     if (p1) {
       p1->execution_time_left--;
@@ -135,11 +126,22 @@ int main(void) {
         //TODO: List end time for CPU & increase array size
         p1 = NULL;
       }
+
+      //Remove from CPU and place to IO
+      if (p1->io_burst_timer == p1->io_frequency && p1->io_burst_time != 0 && p1->execution_time_left != 0) {
+        //TODO: list end time for CPU burst & update start_end_array_size
+        p1->io_burst_timer = 0;
+        p1->io_burst_time_left = p->io_burst_time;
+        enqueue(&io, p1);
+        p1 = NULL;
+      
+        //TODO: list start time for IO burst
+      }
+
+      //TODO: preemptive process
         
     }
 
-    //decrease burst_time_left for all process in IO 
-    update_burst_left_in_IO();
 
   }
   
@@ -393,7 +395,7 @@ void update_burst_left_in_IO() {
 
 }
 
-void remove_completed_IO() {
+void remove_completed_IO(int current_time) {
   int i;
   queue* temp;
   process* p1;
@@ -404,7 +406,7 @@ void remove_completed_IO() {
       if (p1->execution_time_left != 0) {
         enqueue(&q[p1->queue_index], p1);
       }
-      //TODO: update end time for IO process
+      //TODO: update end time for IO process and array size
     }
     else 
       enqueue(temp, p1);
