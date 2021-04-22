@@ -7,6 +7,8 @@ Section: S15
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 typedef struct Process {
   /* input*/
@@ -59,6 +61,8 @@ void enqueue_to_lower(process* p1);
 process* get_highest_priority_process();
 void update_burst_left_in_IO();
 void remove_completed_IO(int current_time);
+int has_ready_higher_priority_job (process* p1);
+int isStringDigitsOnly(const char *str);
 
 //global variables
 int number_of_processes;
@@ -122,7 +126,7 @@ int main(void) {
         enqueue_to_lower(p1);
       }
         
-      if (execution_time_left == 0) {
+      if (p1->execution_time_left == 0) {
         //TODO: List end time for CPU & increase array size
         p1 = NULL;
       }
@@ -139,9 +143,12 @@ int main(void) {
       }
 
       //TODO: preemptive process
-        
+      if (has_ready_higher_priority_job (p1)) {
+        //TODO: list end time for CPU burst & update start_end_array_size
+        enqueue(&q[p1->queue_index], p1);
+        p1 = NULL;
+      }
     }
-
 
   }
   
@@ -229,7 +236,7 @@ void readTextFile() {
       p[j].arrival_time = (int) G[j];
       p[j].total_execution_time = (int) H[j];
       p[j].io_burst_time = (int) I[j];
-      p[io_frequency] = (int) J[j];
+      p[j].io_frequency = (int) J[j];
     }
 }
 
@@ -253,7 +260,7 @@ void errorCheckInputs (float X, float Y, float S,
     printf("Error: Time variables cannot be negative.");
     exit(1);
   } */
-
+  int i, j;
   if (i == 0 && j != 0 || j == 0 && i != 0) {
     printf("Error: For processes without I/O, the I/O burst time (I) and its frequency (J) must be equal to 0.");
     exit(1);
@@ -412,9 +419,21 @@ void remove_completed_IO(int current_time) {
     else {
       //TODO: list end time for IO and update array size
       if (p1->time_quantum_left == 0) 
-        enqueue_to_lower(p1)
+        enqueue_to_lower(p1);
       else
-        enqueue(q[p1->queue_index], p1);
+        enqueue(&q[p1->queue_index], p1);
     }
   }
+}
+
+int has_ready_higher_priority_job (process* p1) {
+  int flag = 0; //FALSE
+  int i;
+  for (i = 0; i < p1->queue_index; i++) 
+    if (!is_queue_empty(&q[i])) {
+      flag = 1; //TRUE
+      break;
+    }
+   
+  return flag;
 }
