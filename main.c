@@ -66,6 +66,7 @@ void show_processes();
 void show_output();
 int are_all_queues_empty();
 void initialize_processes();
+void compute_waiting_turnaround();
 
 int isStringDigitsOnly(const char *str);
 void readTextFile();
@@ -175,7 +176,7 @@ int main(void) {
     }
 
   }
-
+  compute_waiting_turnaround();
   show_output();
   
   return 0;
@@ -495,10 +496,10 @@ void show_output() {
   for (i = 0; i < number_of_processes; i++) {
     printf("P[%d]\n", p[i].id);
     for (j = 0; j < p[i].start_end_array_size; j++) {
-      if (strcmp(p[i].queue_id[j], "IO"))
-        printf("Q[%s] ", p[i].queue_id[j]);
-      else
+      if (strcmp(p[i].queue_id[j], "IO") == 0)
         printf("[IO] ");
+      else
+        printf("Q[%s] ", p[i].queue_id[j]);
       printf("Start time: %d \t End time: %d \n", p[i].start_time[j], p[i].end_time[j]);
     }
     printf("Waiting time: %d \n", p[i].waiting_time);
@@ -533,4 +534,19 @@ queue* createQueue() {
   q->front = NULL;
   q->rear = NULL;
   return q;
+}
+
+void compute_waiting_turnaround() {
+  int i, j;
+  for (i = 0; i < number_of_processes; i++) {
+    
+    int time_in_IO = 0;
+    for (j = 0; j < p[i].start_end_array_size; j++) {
+      if (strcmp(p[i].queue_id[j], "IO") == 0)
+        time_in_IO += (p[i].end_time[j] - p[i].start_time[j]);
+    }
+
+    p[i].turnaround_time = p[i].end_time[p[i].start_end_array_size - 1] - p[i].arrival_time;
+    p[i].waiting_time = p[i].turnaround_time - p[i].total_execution_time - time_in_IO;
+  }
 }
