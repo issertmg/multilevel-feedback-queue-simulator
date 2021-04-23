@@ -77,6 +77,7 @@ void record_end_time(process* p1, int current_time);
 void record_start_time(process* p1, int current_time);
 void record_IO_start_time(process* p1, int current_time);
 void initialize_io_timer(process* p1);
+void sort_queues_by_priority();
 
 int isStringDigitsOnly(const char *str);
 void readTextFile();
@@ -99,7 +100,8 @@ int main(void) {
   initialize_processes();
   initialize_queues();
 
-  //TODO: sort queues according to priority (in descending order)
+  //Sort queues, queue at index 0 (q[0]) is the highest priority queue
+  sort_queues_by_priority();
 
   int current_time = 0;
   process* p1 = NULL;   //process running in CPU
@@ -570,4 +572,15 @@ void record_IO_start_time(process* p1, int current_time) {
 void initialize_io_timer(process* p1) {
   p1->io_burst_timer = 0;
   p1->io_burst_time_left = p1->io_burst_time;
+}
+
+void sort_queues_by_priority() {
+  int i, j;
+  for (i = 0; i < number_of_queues-1; i++) 
+    for (j = 0; j < number_of_queues-i-1; j++) 
+      if (q[j].priority > q[j+1].priority) {
+        process temp = p[j];
+        p[j] = p[j+1];
+        p[j+1] = temp;
+      }
 }
