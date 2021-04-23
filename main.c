@@ -107,12 +107,9 @@ int main(void) {
       priority_boost_flag = 0;
     }
     
-                
     //Get process with the highest priority (Rule 1)
     if (p1 == NULL && !are_all_queues_empty()) {
       p1 = get_highest_priority_process();
-
-      //p1->time_quantum_left = q[p1->queue_index].time_quantum;
 
       //list start time for CPU burst & queue ID
       char str[10];
@@ -126,8 +123,6 @@ int main(void) {
 
     //decrease burst_time_left for all process in IO 
     update_burst_left_in_IO();
-    //Remove processes with complete IO burst from IO (*and update end time)
-    remove_completed_IO(current_time);
     
     
     if (p1) {
@@ -174,6 +169,9 @@ int main(void) {
         p1 = NULL;
       }
     }
+
+    //Remove processes with complete IO burst from IO and place back to ready queue
+    remove_completed_IO(current_time);
 
   }
   compute_waiting_turnaround();
