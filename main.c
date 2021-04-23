@@ -3,6 +3,12 @@ Names: GAGAN, Isser Troy M.
        MATIAS, Maria Angela Mikaela E.
 Group: 40
 Section: S15
+
+Note:
+  1. ARRIVING processes go to ready queue first 
+     before PRE-EMPTED process or IO processes.
+  2. PRE-EMPTED process goes to ready queue first
+     before IO processes.
 ***************************************************************/
 
 #include <stdio.h>
@@ -67,6 +73,10 @@ void show_output();
 int are_all_queues_empty();
 void initialize_processes();
 void compute_waiting_turnaround();
+void record_end_time(process* p1, int current_time);
+void record_start_time(process* p1, int current_time);
+void record_IO_start_time(process* p1, int current_time);
+void initialize_io_timer(process* p1);
 
 int isStringDigitsOnly(const char *str);
 void readTextFile();
@@ -96,10 +106,29 @@ int main(void) {
   int priority_boost_flag = 0;
   while (!are_processes_done()) {
     
-    //Place incoming processes to highest priority queue (Rule 3)
+    //ARRIVING PROCESSES: Place incoming processes to highest priority queue (Rule 3)    
     enqueue_to_topmost_queue(current_time);
 
-    //trigger priority boost (Rule 5)
+    //PRE-EMPTED PROCESS: Place back current process to ready queue if there exists
+    // another process with higher priority (Rule 1 & 2)
+    if (p1 && has_ready_higher_priority_job (p1)) {
+      record_end_time(p1, current_time);
+      enqueue(&q[p1->queue_index], p1);
+      p1 = NULL;
+    }
+
+    //IO PROCESSES: Place back finished IO processes to ready queue
+    remove_completed_IO(current_time);
+
+    //PRE-EMPTED PROCESS: Place back current process to ready queue if there exists
+    // another process with higher priority (Rule 1 & 2)
+    if (p1 && has_ready_higher_priority_job (p1)) {
+      record_end_time(p1, current_time);
+      enqueue(&q[p1->queue_index], p1);
+      p1 = NULL;
+    }
+
+    //PRIORITY BOOST (Rule 5)
     if (current_time % priority_boost_time == 0)
       priority_boost_flag = 1;
     if (priority_boost_flag && p1 == NULL) {
@@ -107,15 +136,10 @@ int main(void) {
       priority_boost_flag = 0;
     }
     
-    //Get process with the highest priority (Rule 1)
+    //COMPARE PRIORITY: Get process with the highest priority (Rule 1)
     if (p1 == NULL && !are_all_queues_empty()) {
       p1 = get_highest_priority_process();
-
-      //list start time for CPU burst & queue ID
-      char str[10];
-      sprintf(str, "%d", q[p1->queue_index].id);
-      strcpy(p1->queue_id[p1->start_end_array_size], str);
-      p1->start_time[p1->start_end_array_size] = current_time;
+      record_start_time(p1, current_time);
     }
     
     //increment current time
@@ -124,7 +148,6 @@ int main(void) {
     //decrease burst_time_left for all process in IO 
     update_burst_left_in_IO();
     
-    
     if (p1) {
       p1->execution_time_left--;
       p1->time_quantum_left--;
@@ -132,48 +155,26 @@ int main(void) {
 
       //Remove from CPU and place to IO
       if (p1->io_burst_timer == p1->io_frequency && p1->io_burst_time != 0 && p1->execution_time_left != 0) {
-        //list end time for CPU burst & update start_end_array_size
-        p1->end_time[p1->start_end_array_size] = current_time;
-        p1->start_end_array_size++;
-        
-        p1->io_burst_timer = 0;
-        p1->io_burst_time_left = p1->io_burst_time;
+        record_end_time(p1, current_time);
+        initialize_io_timer(p1);
         enqueue(&io, p1);
-      
-        //list start time for IO burst
-        strcpy(p1->queue_id[p1->start_end_array_size], "IO");
-        p1->start_time[p1->start_end_array_size] = current_time;
-
+        record_IO_start_time(p1, current_time);
         p1 = NULL;
       }
+      //Job uses up its time quantum (Rule 4)
       else if (p1->time_quantum_left == 0 && p1->execution_time_left != 0) {
-        //List end time for CPU & increase array size
-        p1->end_time[p1->start_end_array_size] = current_time;
-        p1->start_end_array_size++;
+        record_end_time(p1, current_time);
         enqueue_to_lower(p1);
         p1 = NULL;
       }
+      //Job finished execution
       else if (p1->execution_time_left == 0) {
-        //List end time for CPU & increase array size
-        p1->end_time[p1->start_end_array_size] = current_time;
-        p1->start_end_array_size++;
-        p1 = NULL;
-      }
-
-      //TODO: preemptive process
-      else if (has_ready_higher_priority_job (p1)) {
-        //list end time for CPU burst & update start_end_array_size
-        p1->end_time[p1->start_end_array_size] = current_time;
-        p1->start_end_array_size++;
-        enqueue(&q[p1->queue_index], p1);
+        record_end_time(p1, current_time);
         p1 = NULL;
       }
     }
-
-    //Remove processes with complete IO burst from IO and place back to ready queue
-    remove_completed_IO(current_time);
-
   }
+  
   compute_waiting_turnaround();
   show_output();
   
@@ -547,4 +548,26 @@ void compute_waiting_turnaround() {
     p[i].turnaround_time = p[i].end_time[p[i].start_end_array_size - 1] - p[i].arrival_time;
     p[i].waiting_time = p[i].turnaround_time - p[i].total_execution_time - time_in_IO;
   }
+}
+
+void record_end_time(process* p1, int current_time) {
+  p1->end_time[p1->start_end_array_size] = current_time;
+  p1->start_end_array_size++;
+}
+
+void record_start_time(process* p1, int current_time) {
+  char str[10];
+  sprintf(str, "%d", q[p1->queue_index].id);
+  strcpy(p1->queue_id[p1->start_end_array_size], str);
+  p1->start_time[p1->start_end_array_size] = current_time;
+}
+
+void record_IO_start_time(process* p1, int current_time) {
+  strcpy(p1->queue_id[p1->start_end_array_size], "IO");
+  p1->start_time[p1->start_end_array_size] = current_time;
+}
+
+void initialize_io_timer(process* p1) {
+  p1->io_burst_timer = 0;
+  p1->io_burst_time_left = p1->io_burst_time;
 }
