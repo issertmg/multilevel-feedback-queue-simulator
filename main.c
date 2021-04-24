@@ -78,6 +78,10 @@ void record_start_time(process* p1, int current_time);
 void record_IO_start_time(process* p1, int current_time);
 void initialize_io_timer(process* p1);
 void sort_queues_by_priority();
+void errorCheckInputs (float X, float Y, float S, 
+                      float A[], float B[], float C[],
+                      float F[], float G[], float H[], float I[], float J[]);
+int isInteger(float value);
 
 int isStringDigitsOnly(const char *str);
 void readTextFile();
@@ -95,7 +99,7 @@ int main(void) {
 
   //TODO: read text file and initialize processes and queues
   readTextFile();
-  show_processes();
+  //show_processes();
 
   initialize_processes();
   initialize_queues();
@@ -185,14 +189,14 @@ int main(void) {
 
 void readTextFile() {
   FILE *fp;
-  int queueLineCounter;
-  int processLineCounter;
   char filepath[261] = "./";
   char filename[261];
+  int i, j;
 
   float X, Y, S;
   float A[100], B[100], C[100];
   float F[100], G[100], H[100], I[100], J[100];
+  int dX, dY;
 
   printf("Enter filename (include .txt): ");
   scanf("%s", filename);
@@ -203,14 +207,16 @@ void readTextFile() {
 
   if (fp != NULL) {
     
-    /*
     // checking for non-numeric
     char line[256];
     char *token;
 
-    while (fgets(line, 256, fp)) {
+    //read first line
+    if (fgets(line, 256, fp) != NULL) {
+      long int filePosition;
+      int tokenCounterPerLine;
       token = strtok(line, " ");
-      int tokenCounterPerLine = 0;
+      tokenCounterPerLine = 0;
 
       while(token != NULL) {
         if (!isStringDigitsOnly(token)) {
@@ -219,58 +225,126 @@ void readTextFile() {
         }
         tokenCounterPerLine++;
         token = strtok(NULL, " ");
-      } 
+      }
+      
+      if (tokenCounterPerLine != 3) {
+        printf("Error: Each line in the text file should have exactly 3 integers.");
+        exit(1);
+      }
 
-      if (tokenCounterPerLine != 3 || tokenCounterPerLine != 5) {
-        printf("Error: Each line in the text file should have either 3 or 5 integers.");
+      fseek(fp, 0, SEEK_SET);
+      fscanf(fp, " %f %f %f", &X, &Y, &S);
+      dX = (int) X;
+      dY = (int) Y;
+      fseek(fp, 0, SEEK_SET);
+      fgets(line, 256, fp);
+      
+      filePosition = ftell(fp);
+
+      for (i = 0; i < dX; i++) {
+        if (fgets(line, 256, fp) != NULL) {
+          token = strtok(line, " ");
+          tokenCounterPerLine = 0;
+
+          while(token != NULL) {
+            if (!isStringDigitsOnly(token)) {
+              printf("Error: Text file contains non-numeric data and/or invalid values.");
+              exit(1);
+            }
+            tokenCounterPerLine++;
+            
+            token = strtok(NULL, " ");
+          }
+        
+          if (tokenCounterPerLine != 3) {
+            printf("Error: Each line in the queue lines should have exactly 3 integers. Make sure there are no trailing spaces in each line.");
+            exit(1);
+          }
+        }
+        else {
+          printf("Error: Number of queue lines is less than the indicated (X).");
+          exit(1);
+        }
+      }
+
+      fseek(fp, filePosition, SEEK_SET);
+      for (i = 0; i < dX; i++)
+        fscanf(fp, " %f %f %f", &A[i], &B[i], &C[i]);
+
+      fseek(fp, filePosition, SEEK_SET);
+      for (i = 0; i < dX; i++)
+        fgets(line, 256, fp);
+      
+      filePosition = ftell(fp);
+
+      for (i = 0; i < dY; i++) {
+        if (fgets(line, 256, fp) != NULL) {
+          token = strtok(line, " ");
+          tokenCounterPerLine = 0;
+
+          while(token != NULL) {
+            if (!isStringDigitsOnly(token)) {
+              printf("Error: Text file contains non-numeric data and/or invalid values.");
+              exit(1);
+            }
+            tokenCounterPerLine++;
+            token = strtok(NULL, " ");
+          }
+          if (tokenCounterPerLine != 5) {
+            printf("Error: Each line in the process lines should have exactly 5 integers. Make sure there are no trailing spaces in each line.");
+            exit(1);
+          }
+        }
+        else {
+          printf("Error: Number of process lines is less than the indicated (Y).");
+          exit(1);
+        }
+      }
+
+      fseek(fp, filePosition, SEEK_SET);
+      for (i = 0; i < dY; i++)
+        fscanf(fp, " %f %f %f %f %f", &F[i], &G[i], &H[i], &I[i], &J[i]);
+
+      fseek(fp, filePosition, SEEK_SET);
+      for (i = 0; i < dY; i++)
+        fgets(line, 256, fp);
+
+      //Checking for extra lines
+      int dExtra;
+      char cExtra;
+      if (fscanf(fp, " %d ", &dExtra) == 1) {
+        printf("Error: Text file has extra lines.");
+        exit(1);
+      }
+      else if (fscanf(fp, " %c ", &cExtra) == 1) {
+        printf("Error: Text file has extra lines.");
         exit(1);
       }
     }
-
-    fseek(fp, 0, SEEK_SET);
-    */
-
-    if (fscanf(fp, " %f %f %f", &X, &Y, &S) == 3) {
-      queueLineCounter = 0;
-      /*TODO: do {
-        if (fscanf(fp, " %f %f %f", &A[queueLineCounter], &B[queueLineCounter], &C[queueLineCounter]) == 3)
-          queueLineCounter++;
-        
-        if (queueLineCounter > X)
-      } while (queueLineCounter <= X) */;
-
-      //TEMPORARY FOR TESTING ONLY (U CAN DELETE IF U WANT)
-      int i;
-      for (i = 0; i < X; i++)
-        fscanf(fp, " %f %f %f", &A[i], &B[i], &C[i]);
-      for (i = 0; i < Y; i++)
-        fscanf(fp, " %f %f %f %f %f", &F[i], &G[i], &H[i], &I[i], &J[i]);
-
-    } else {
-      printf("Error: Problem reading first line of text file. Make sure it contains 3 integers.");
+    else {
+      printf("Error: Cannot read first line.");
       exit(1);
     }
+
   } else {
     printf("\"%s\" not found.", filename);
     exit(1);
   }
   fclose(fp);
 
-  //TODO: check inputs errorCheckInputs (X, Y, S, A, B, C, F, G, H, I, J, queueLineCounter, processLineCounter);
+  errorCheckInputs (X, Y, S, A, B, C, F, G, H, I, J);
 
-  //TODO: place in global variables
-  
-    number_of_queues = X;
-    number_of_processes = Y;
-    priority_boost_time = S;
+    number_of_queues = (int) X;
+    number_of_processes = (int) Y;
+    priority_boost_time = (int) S;
 
-    for (int i = 0; i < number_of_queues; i++) {
+    for (i = 0; i < number_of_queues; i++) {
       q[i].id = (int) A[i];
       q[i].priority = (int) B[i];
       q[i].time_quantum = (int) C[i];
     } 
 
-    for (int j = 0; j < number_of_processes; j++) {
+    for (j = 0; j < number_of_processes; j++) {
       p[j].id = (int) F[j];
       p[j].arrival_time = (int) G[j];
       p[j].total_execution_time = (int) H[j];
@@ -281,29 +355,60 @@ void readTextFile() {
 
 void errorCheckInputs (float X, float Y, float S, 
                       float A[], float B[], float C[],
-                      float F[], float G[], float H[], float I[], float J[],
-                      int queueLines, int processLines  
+                      float F[], float G[], float H[], float I[], float J[]
                       ) {
-  
+  int i;
+
   if (X < 2 || X > 5) {
-    printf("Error: Specified CPU scheduling algorithm (X) is invalid. Must be a value from 2 to 5.");
+    printf("Error: Number of queues (X) is invalid. Must be a value from 2 to 5.");
     exit(1);
   }
   if (Y < 3 || Y > 100) {
-    printf("Error: Specified CPU scheduling algorithm (X) is invalid. Must be a value from 3 to 100.");
+    printf("Error: Number of processes (Y) is invalid. Must be a value from 3 to 100.");
     exit(1);
   }
 
-  /* FIXME: NOT SURE!
-  if (S < 0 || G < 0 || H < 0 || I < 0 || J < 0) {
-    printf("Error: Time variables cannot be negative.");
-    exit(1);
-  } */
-  int i, j;
-  if (i == 0 && j != 0 || j == 0 && i != 0) {
-    printf("Error: For processes without I/O, the I/O burst time (I) and its frequency (J) must be equal to 0.");
+  if (S <= 0) {
+    printf("Error: Priority boost time period (S) is invalid. Must be a value greater than 0.");
     exit(1);
   }
+
+   //Check if all inputs are integers
+  if (!isInteger(X) || !isInteger(Y) || !isInteger(S)) {
+    printf("Error: First line containing X, Y, and S should be integers.");
+    exit(1);
+  }
+
+  int dX = (int) X;
+  int dY = (int) Y;
+
+  for (i = 0; i < dX; i++) {
+    if (!isInteger(A[i]) || !isInteger(B[i]) || !isInteger(C[i])) {
+      printf("Error: All numbers in the text file should be integers.");
+      exit(1);
+    }
+  }
+
+  int dI, dJ;
+  for (i = 0; i < dY; i++) {
+    if (!isInteger(F[i]) || !isInteger(G[i]) || !isInteger(H[i]) || !isInteger(I[i]) || !isInteger(J[i])) {
+      printf("Error: All numbers in the text file should be integers.");
+      exit(1);
+    }
+    dI = (int) I[i];
+    dJ = (int) J[i];
+
+    if ((dI == 0 && dJ != 0) || (dI != 0 && dJ == 0)) {
+      printf("Error: For processes without I/O, the I/O burst time (I) and its frequency (J) must be equal to 0.");
+      exit(1);
+    }
+  }
+}
+
+int isInteger(float value) {
+    int truncated = (int) value;
+    float integerValue = (float) truncated;
+    return (value == integerValue);
 }
 
 int isStringDigitsOnly(const char *str) {
