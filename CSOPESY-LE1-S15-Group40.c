@@ -94,6 +94,7 @@ int number_of_queues;
 queue q[5];
 int priority_boost_time;
 queue io;
+float avg_waiting_time;
 
 int main(void) {
 
@@ -652,6 +653,7 @@ void show_output() {
     printf("Waiting time: %d \n", p[i].waiting_time);
     printf("Turnaround time: %d \n", p[i].turnaround_time);
     printf("**************************************** \n");
+    printf("Average waiting time: %f \n", avg_waiting_time);
   }
 }
 
@@ -692,6 +694,7 @@ queue* createQueue() {
   turnaround time of all the processes.
 */
 void compute_waiting_turnaround() {
+  avg_waiting_time = 0;
   int i, j;
   for (i = 0; i < number_of_processes; i++) {
     
@@ -703,7 +706,9 @@ void compute_waiting_turnaround() {
 
     p[i].turnaround_time = p[i].end_time[p[i].start_end_array_size - 1] - p[i].arrival_time;
     p[i].waiting_time = p[i].turnaround_time - p[i].total_execution_time - time_in_IO;
+    avg_waiting_time += p[i].waiting_time;
   }
+  avg_waiting_time = avg_waiting_time / number_of_processes;
 }
 
 /*
