@@ -106,7 +106,7 @@ int main(void) {
 
   //Sort queues, queue at index 0 (q[0]) is the highest priority queue
   sort_queues_by_priority();
-
+  
   int current_time = 0;
   process* p1 = NULL;   //process running in CPU
   int priority_boost_flag = 0;
@@ -684,8 +684,18 @@ void sort_queues_by_priority() {
   for (i = 0; i < number_of_queues-1; i++) 
     for (j = 0; j < number_of_queues-i-1; j++) 
       if (q[j].priority > q[j+1].priority) {
-        process temp = p[j];
-        p[j] = p[j+1];
-        p[j+1] = temp;
+        queue temp = q[j];
+        q[j] = q[j+1];
+        q[j+1] = temp;
       }
+    
+  int previous = -1;
+  for (i = 0; i < number_of_queues; i++)
+    if (previous == q[i].priority) {
+      printf("Error: Some queues have the same priority level.");
+      exit(1);
+    }
+    else {
+      previous = q[i].priority;
+    }
 }
