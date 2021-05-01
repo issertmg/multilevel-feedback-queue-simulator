@@ -119,6 +119,9 @@ int main(void) {
     // another process with higher priority (Rule 1 & 2)
     if (p1 && has_ready_higher_priority_job (p1)) {
       record_end_time(p1, current_time);
+      //reset time quantum left if already in the lowest queue
+      if (p1->queue_index == number_of_queues - 1) 
+        p1->time_quantum_left = q[p1->queue_index].time_quantum;
       enqueue(&q[p1->queue_index], p1);
       p1 = NULL;
     }
@@ -130,6 +133,9 @@ int main(void) {
     // another process with higher priority (Rule 1 & 2)
     if (p1 && has_ready_higher_priority_job (p1)) {
       record_end_time(p1, current_time);
+      //reset time quantum left if already in the lowest queue
+      if (p1->queue_index == number_of_queues - 1) 
+        p1->time_quantum_left = q[p1->queue_index].time_quantum;
       enqueue(&q[p1->queue_index], p1);
       p1 = NULL;
     }
@@ -571,8 +577,14 @@ void remove_completed_IO(int current_time) {
 
       if (p1->time_quantum_left == 0) 
         enqueue_to_lower(p1);
-      else
+      else {
+        //reset time quantum left if already in the lowest queue
+        if (p1->queue_index == number_of_queues - 1) 
+          p1->time_quantum_left = q[p->queue_index].time_quantum;
+  
         enqueue(&q[p1->queue_index], p1);
+      }
+        
     }
   }
 }
