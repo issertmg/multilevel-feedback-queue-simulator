@@ -653,8 +653,8 @@ void show_output() {
     printf("Waiting time: %d \n", p[i].waiting_time);
     printf("Turnaround time: %d \n", p[i].turnaround_time);
     printf("**************************************** \n");
-    printf("Average waiting time: %0.2f \n", avg_waiting_time);
   }
+  printf("Average waiting time: %0.2f \n", avg_waiting_time);
 }
 
 
