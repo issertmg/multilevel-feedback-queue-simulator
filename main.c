@@ -97,10 +97,8 @@ queue io;
 
 int main(void) {
 
-  //TODO: read text file and initialize processes and queues
+  //read text file and initialize processes and queues
   readTextFile();
-  //show_processes();
-
   initialize_processes();
   initialize_queues();
 
@@ -427,6 +425,11 @@ int isStringDigitsOnly(const char *str) {
   return 1;
 }
 
+/*
+  Move process to the next queue below it. 
+  If already at the bottom queue, then
+  enqueue back to the same queue
+*/
 void enqueue_to_lower(process* p1) {
   if (p1->queue_index == number_of_queues - 1) {
     enqueue(&q[p1->queue_index], p1);
@@ -455,6 +458,10 @@ void execute_priority_boost() {
   }
 }
 
+/*
+  Used in enqueuing arriving processes to
+  the topmost queue.
+*/
 void enqueue_to_topmost_queue(int current_time) {
   int i;
   for (i = 0; i < number_of_processes; i++)
@@ -465,6 +472,10 @@ void enqueue_to_topmost_queue(int current_time) {
     }
 }
 
+/*
+  Used in checking whether all the processes
+  are done executing.
+*/
 int are_processes_done() {
   int flag = 1; //TRUE (processes are done)
   int i;
@@ -529,6 +540,10 @@ int is_queue_empty(queue* q) {
   return q->rear == NULL;
 }
 
+/*
+  Function returns the process with the high priority
+  among all the processes in all queues.
+*/
 process* get_highest_priority_process() {
   process* p1 = NULL;
   int i;
@@ -540,6 +555,10 @@ process* get_highest_priority_process() {
   return p1;
 }
 
+/*
+  Decreases the IO burst time left in all
+  the processes in the IO queue.
+*/
 void update_burst_left_in_IO() {
   queue* temp = createQueue();
   process* p1;
@@ -556,6 +575,11 @@ void update_burst_left_in_IO() {
   }
 }
 
+/*
+  Removes processes with completed IO burst time
+  from the IO queue, and returns them back to
+  their respective queues.
+*/
 void remove_completed_IO(int current_time) {
   int i;
   queue* temp = createQueue();
@@ -589,6 +613,11 @@ void remove_completed_IO(int current_time) {
   }
 }
 
+/*
+  Used in preempting processes. Function
+  checks if there is an available process with
+  higher priority than the current process.
+*/
 int has_ready_higher_priority_job (process* p1) {
   int flag = 0; //FALSE
   int i;
@@ -626,6 +655,10 @@ void show_output() {
   }
 }
 
+
+/*
+  Checks if all the queues are empty.
+*/
 int are_all_queues_empty() {
   int flag = 1; //TRUE
   int i;
@@ -654,6 +687,10 @@ queue* createQueue() {
   return q;
 }
 
+/*
+  Computes for the waiting time and
+  turnaround time of all the processes.
+*/
 void compute_waiting_turnaround() {
   int i, j;
   for (i = 0; i < number_of_processes; i++) {
@@ -669,11 +706,17 @@ void compute_waiting_turnaround() {
   }
 }
 
+/*
+  Records the end time of a process.
+*/
 void record_end_time(process* p1, int current_time) {
   p1->end_time[p1->start_end_array_size] = current_time;
   p1->start_end_array_size++;
 }
 
+/*
+  Records the CPU start time of a process.
+*/
 void record_start_time(process* p1, int current_time) {
   char str[10];
   sprintf(str, "%d", q[p1->queue_index].id);
@@ -681,16 +724,29 @@ void record_start_time(process* p1, int current_time) {
   p1->start_time[p1->start_end_array_size] = current_time;
 }
 
+/*
+  Records the IO start time of a process.
+*/
 void record_IO_start_time(process* p1, int current_time) {
   strcpy(p1->queue_id[p1->start_end_array_size], "IO");
   p1->start_time[p1->start_end_array_size] = current_time;
 }
 
+/*
+  Initializes the IO burst timer "left" of the process,
+  as well as reset the IO burst timer
+*/
 void initialize_io_timer(process* p1) {
   p1->io_burst_timer = 0;
   p1->io_burst_time_left = p1->io_burst_time;
 }
 
+/*
+  Sorts the queues by priority such that
+  the queue in index 0 has the highest priority.
+  The function also checks for an error
+  where some queues have the same priority.
+*/
 void sort_queues_by_priority() {
   int i, j;
   for (i = 0; i < number_of_queues-1; i++) 
